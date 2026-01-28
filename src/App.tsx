@@ -2,9 +2,14 @@ import { VideoGrid } from '@components/VideoGrid';
 import { useYoutube } from '@contexts/youtubeContext';
 import { runYoutubeSearch } from '@helpers/youtubeSearch';
 import styles from './App.module.css';
+import { useMemo, useState } from 'react';
+import Fuse from 'fuse.js';
 
 function App() {
   const [youtubeState, youtubeDispatch] = useYoutube();
+  const [filterInput, setFilterInput] = useState<string>('');
+
+  const isFiltering = filterInput.length > 3;
 
   const onSearch = async () => {
     await runYoutubeSearch(youtubeState.query, youtubeDispatch);
@@ -18,6 +23,23 @@ function App() {
       append: true,
     });
   };
+
+  const fuse = useMemo(() => {
+    if (youtubeState.videos.length === 0) return null;
+
+    return new Fuse(youtubeState.videos, {
+      keys: ['title', 'channelTitle'],
+      threshold: 0.35,
+      ignoreLocation: true,
+      minMatchCharLength: 3,
+    });
+  }, [youtubeState.videos]);
+
+  const filteredVideos = useMemo(() => {
+    if (!fuse || !isFiltering) return youtubeState.videos;
+
+    return fuse.search(filterInput).map((r: any) => r.item);
+  }, [fuse, isFiltering, filterInput, youtubeState.videos]);
 
   return (
     <div className={styles.container}>
@@ -52,8 +74,17 @@ function App() {
           </button>
         </div>
         <div className={styles.filterContainer}>
-          <label className={styles.label} htmlFor="filter">Filter:</label>
-          <input type="text" name="filter" className={styles.textInput} aria-disabled="true" />
+          <label className={styles.label} htmlFor="filter">
+            Filter:
+          </label>
+          <input
+            type="text"
+            name="filter"
+            className={styles.textInput}
+            value={filterInput}
+            onChange={(e) => setFilterInput(e.target.value)}
+            aria-disabled="true"
+          />
         </div>
       </div>
 
@@ -62,7 +93,7 @@ function App() {
       )}
 
       <VideoGrid
-        videos={youtubeState.videos}
+        videos={filteredVideos}
         onEndReached={() =>
           runYoutubeSearch(youtubeState.query, youtubeDispatch, {
             pageToken: youtubeState.nextPageToken,
@@ -70,13 +101,15 @@ function App() {
           })
         }
         isLoading={youtubeState.status === 'loading'}
-        infiniteScrollEnabled={youtubeState.infiniteScrollEnabled}
+        infiniteScrollEnabled={youtubeState.infiniteScrollEnabled && !isFiltering}
       />
-      <div className={styles.actionButtonsContainer}>
-        <button className={styles.actionButton} onClick={handleLoadMore}>
-          Next page
-        </button>
-      </div>
+      {!isFiltering ? (
+        <div className={styles.actionButtonsContainer}>
+          <button className={styles.actionButton} onClick={handleLoadMore}>
+            Next page
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
