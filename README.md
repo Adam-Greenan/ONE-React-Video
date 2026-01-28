@@ -51,3 +51,12 @@
 - Infinite scroll enabled only after user interaction
 - Additional results loaded as the user scrolls
 - Virtualisation keeps performance consistent with large result sets
+
+## What I’d do with more time
+- Add unit tests for reducers and data-mapping helpers
+- Add basic component tests around search, filtering, and pagination
+- Improve loading states with skeleton placeholders
+- Add additional sort and filter options (date, relevance)
+- Persist cached results with expiry rather than session-only storage
+- Fetch and display richer video metadata (duration, view count)
+- Further accessibility improvements (keyboard flow, focus management)
